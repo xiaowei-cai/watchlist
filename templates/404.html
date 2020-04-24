@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+    <ul class="movie-list">
+        <li>
+            Page Not Found - 404
+            <span class="float-right">
+                {# 获取hello映射的url路径，即指向/index #}
+                <a href="{{ url_for('hello') }}">Go Back To Index.</a>
+            </span>
+        </li>
+    </ul>
+{% endblock %}
