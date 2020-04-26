@@ -1,5 +1,5 @@
 import click
-from flask import Flask, url_for, render_template
+from flask import Flask, url_for, render_template, request, flash, redirect
 from flask import escape
 from flask_sqlalchemy import SQLAlchemy
 
@@ -7,6 +7,11 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Cxw910325@localhost:3306/caixiaowei'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的监控
+'''
+flash() 函数在内部会把消息存储到 Flask 提供的 session 对象里。
+session 用来在请求间存储数据，它会把数据签名后存储到浏览器的 Cookie 中，所以我们需要设置签名所需的密钥：
+'''
+app.config['SECRET_KEY'] = 'dev'  # 等同于 app.secret_key = 'dev'
 db = SQLAlchemy(app)
 
 
@@ -60,11 +65,31 @@ def initdb(drop):
     click.echo('Initialized database.')  # 输出提示信息
 
 
-@app.route('/')
-@app.route('/home')
-@app.route('/index')
+'''
+# 两种方法的请求有不同的处理逻辑：
+对于 GET 请求，返回渲染后的页面；
+对于 POST 请求，则获取提交的表单数据并保存；
+为了在函数内加以区分，我们添加一个 if 判断
+'''
+
+
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 def hello():
-    # return 'Welcome To My Watchlist!'
+    if request.method == 'POST':
+        # 获取表单数据
+        title = request.form.get('title')  # 传入表单对应输入字段的 name 值
+        year = request.form.get('year')
+        # 验证数据
+        if not title or not year or len(year) > 4 or len(title) > 60:
+            flash('Invalid input.')  # 显示错误提示
+            return redirect(url_for('hello'))  # 重定向回主页
+        # 保存表单数据到数据库
+        movie = Movie(title=title, year=year)  # 创建记录
+        db.session.add(movie)  # 添加到数据库会话
+        db.session.commit()  # 提交数据库会话
+        flash('Item created.')  # 显示成功创建的提示
+        return redirect(url_for('hello'))  # 重定向回主页
     user = User.query.first()
     movies = Movie.query.all()
     # return render_template('index.html', user=user, movies=movies)
